@@ -700,18 +700,25 @@
     }
 
     function renderAll() {
-      const currentL = (state.waterLitres !== undefined) ? state.waterLitres : ((state.waterGlasses || 0) * 0.4);
-      state.waterLitres = parseFloat(currentL.toFixed(2));
+      // Priority: use state.waterLitres
+      if (state.waterLitres === undefined || isNaN(state.waterLitres)) {
+        state.waterLitres = ((state.waterGlasses || 0) * 0.4);
+      }
+      state.waterLitres = parseFloat(state.waterLitres.toFixed(2));
 
       const drunkStr = state.waterLitres.toFixed(1);
       const balanceStr = Math.max(0, 4.0 - state.waterLitres).toFixed(1);
       const percent = Math.min(100, Math.round((state.waterLitres / 4.0) * 100));
 
-      document.getElementById('txt-drunk-litres').innerText = `${drunkStr}L`;
-      document.getElementById('txt-balance-litres').innerText = `${balanceStr}L`;
-      document.getElementById('badge-water-cups').innerText = `${drunkStr}L / 4.0L`;
+      const drunkEl = document.getElementById('txt-drunk-litres');
+      const balanceEl = document.getElementById('txt-balance-litres');
+      const badgeCupsEl = document.getElementById('badge-water-cups');
 
-      // Update Animated Tank Level
+      if (drunkEl) drunkEl.innerText = `${drunkStr}L`;
+      if (balanceEl) balanceEl.innerText = `${balanceStr}L`;
+      if (badgeCupsEl) badgeCupsEl.innerText = `${drunkStr}L / 4.0L`;
+
+      // Update Animated Tank Level (Inside Can)
       const tankLitresEl = document.getElementById('water-tank-litres');
       const tankLiquidEl = document.getElementById('water-can-liquid');
       const tankPercentEl = document.getElementById('water-tank-percent');
@@ -720,7 +727,8 @@
       if (tankLiquidEl) tankLiquidEl.style.height = `${percent}%`;
       if (tankPercentEl) tankPercentEl.innerText = `${percent}% of 4.0L`;
 
-      document.getElementById('txt-pushups-val').innerText = state.pushups;
+      const pushupValEl = document.getElementById('txt-pushups-val');
+      if (pushupValEl) pushupValEl.innerText = state.pushups || 0;
 
       renderSlotMeals();
       renderIdeas();
@@ -728,12 +736,12 @@
     }
 
     function changeWaterLitre(delta) {
-      if (state.waterLitres === undefined) {
-        state.waterLitres = (state.waterGlasses || 0) * 0.4;
+      if (state.waterLitres === undefined || isNaN(state.waterLitres)) {
+        state.waterLitres = ((state.waterGlasses || 0) * 0.4);
       }
       let next = state.waterLitres + delta;
       if (next < 0) next = 0;
-      if (next > 6.0) next = 6.0; // limit upper bound
+      if (next > 6.0) next = 6.0;
       state.waterLitres = parseFloat(next.toFixed(2));
       state.waterGlasses = Math.round(state.waterLitres / 0.4);
       saveState();
@@ -799,6 +807,11 @@
       document.getElementById('panel-water').style.display = type === 'water' ? 'block' : 'none';
       document.getElementById('panel-snack').style.display = type === 'snack' ? 'block' : 'none';
       document.getElementById('panel-diet').style.display = type === 'diet' ? 'block' : 'none';
+
+      // If opening water panel, re-trigger renderAll to guarantee can liquid updates!
+      if (type === 'water') {
+        renderAll();
+      }
     }
 
     function renderHydroGrid() {
