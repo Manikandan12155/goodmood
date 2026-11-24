@@ -2,7 +2,7 @@
   "daily_records": {
     "2026-11-24": {
       "entry_date": "2026-11-24",
-      "weight": 94.8,
+      "weight": 95,
       "water_glasses": 0,
       "steps": 0,
       "gps_distance_km": 0,
@@ -13,8 +13,12 @@
         "snack": "",
         "dinner": ""
       },
-      "water_litres": 1.75,
-      "updated_at": "2026-11-24T15:56:04.722522"
+      "water_litres": 0,
+      "updated_at": "2026-11-24T16:31:39.039613",
+      "sugarTea": 14,
+      "proteinHit": false,
+      "deepFried": false,
+      "lateMunch": false
     }
   },
   "vault_items": []
