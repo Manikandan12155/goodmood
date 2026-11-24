@@ -1,0 +1,21 @@
+{
+  "daily_records": {
+    "2026-11-24": {
+      "entry_date": "2026-11-24",
+      "weight": 94.8,
+      "water_glasses": 0,
+      "steps": 0,
+      "gps_distance_km": 0,
+      "pushups": 0,
+      "slotMeals": {
+        "breakfast": "",
+        "lunch": "",
+        "snack": "",
+        "dinner": ""
+      },
+      "water_litres": 1.75,
+      "updated_at": "2026-11-24T15:56:04.722522"
+    }
+  },
+  "vault_items": []
+}
