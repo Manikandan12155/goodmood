@@ -508,82 +508,128 @@
 
     <!-- 3. STRENGTH TAB -->
     <div id="view-strength" class="view">
-      <!-- COC Walk Card -->
-      <div class="card" style="background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(15, 23, 42, 0.95)); border: 2px solid rgba(239, 68, 68, 0.4);">
-        <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 10px;">
-          <div style="width: 50px; height: 50px; border-radius: 14px; background: linear-gradient(135deg, #ef4444, #991b1b); display: flex; align-items: center; justify-content: center; font-size: 26px;">
-            🚶‍♂️
-          </div>
-          <div style="flex: 1;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <h3 style="font-size: 15px; font-weight: 800; color: #fff;">WALK (TROOP MARCH)</h3>
-              <span style="font-size: 10px; background: rgba(239, 68, 68, 0.3); color: #fca5a5; padding: 2px 8px; border-radius: 999px; font-weight: 800;">LVL 1</span>
-            </div>
-            <p style="font-size: 11px; color: var(--text-muted);">Live GPS distance & speed tracking</p>
-          </div>
-        </div>
-
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; background: rgba(0, 0, 0, 0.35); padding: 10px; border-radius: 12px; margin-bottom: 12px; text-align: center;">
+      <div class="card" style="background: linear-gradient(145deg, #241313, #120909); border-color: rgba(239, 68, 68, 0.3); margin-bottom: 14px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
           <div>
-            <span style="font-size: 9px; color: var(--text-muted); display: block; font-weight: 700;">DISTANCE</span>
-            <strong style="font-size: 17px; color: #38bdf8;" id="gps-dist">0.00</strong> <small style="font-size: 9px; color: #38bdf8;">km</small>
+            <h2 style="font-size: 22px; font-weight: 800; color: var(--strength);">Strength & Conditioning</h2>
+            <span style="font-size: 11px; color: var(--text-muted);">Cardio Fat Burn vs Muscle Hypertrophy</span>
           </div>
-          <div>
-            <span style="font-size: 9px; color: var(--text-muted); display: block; font-weight: 700;">SPEED</span>
-            <strong style="font-size: 17px; color: #f59e0b;" id="gps-speed">0.0</strong> <small style="font-size: 9px; color: #f59e0b;">km/h</small>
-          </div>
-          <div>
-            <span style="font-size: 9px; color: var(--text-muted); display: block; font-weight: 700;">ELIXIR</span>
-            <strong style="font-size: 17px; color: #10b981;" id="gps-kcal">0</strong> <small style="font-size: 9px; color: #10b981;">cal</small>
-          </div>
-        </div>
-
-        <div style="display: flex; gap: 8px;">
-          <button id="btn-gps-toggle" onclick="toggleGpsWalk()" style="flex: 1; background: linear-gradient(135deg, #ef4444, #dc2626); color: #fff; border: none; padding: 12px; border-radius: 12px; font-weight: 800; font-size: 12px; cursor: pointer;">
-            <span id="txt-gps-btn">DEPLOY TROOP (START WALK)</span>
-          </button>
-          <button onclick="resetGpsWalk()" style="background: rgba(255, 255, 255, 0.08); border: 1px solid var(--card-border); color: var(--text); padding: 0 14px; border-radius: 12px; font-weight: 700; font-size: 12px; cursor: pointer;">
-            Reset
-          </button>
-        </div>
-        <div id="gps-status" style="font-size: 10px; color: var(--text-muted); text-align: center; margin-top: 6px;">
-          GPS Ready • Tap Deploy outside
         </div>
       </div>
 
-      <!-- Core & Pushups -->
-      <div class="card">
-        <h4 style="font-size: 14px; font-weight: 800; margin-bottom: 10px;">🏋️ Gym & Core Conditioning</h4>
+      <!-- Segmented Switch: CARDIO vs WEIGHTS -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px;">
+        <button id="btn-sub-cardio" onclick="switchStrengthCategory('cardio')" style="background: linear-gradient(135deg, rgba(239, 68, 68, 0.25), rgba(220, 38, 38, 0.4)); border: 2px solid var(--strength); color: #fff; padding: 12px; border-radius: 14px; font-weight: 800; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+          <span>🏃‍♂️</span> <span>CARDIO (FAT BURN)</span>
+        </button>
+        <button id="btn-sub-weights" onclick="switchStrengthCategory('weights')" style="background: rgba(255, 255, 255, 0.04); border: 1px solid var(--card-border); color: var(--text-muted); padding: 12px; border-radius: 14px; font-weight: 800; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+          <span>🏋️</span> <span>WEIGHTS & MUSCLE</span>
+        </button>
+      </div>
 
-        <!-- Tummy Vacuum -->
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 12px; margin-bottom: 8px;">
-          <div>
-            <h4 style="font-size: 13px; font-weight: 800; color: #f87171;">🔥 Hanging Belly Vacuum</h4>
-            <p style="font-size: 10px; color: var(--text-muted);">Suck belly to spine. Tightens saggy tummy.</p>
+      <!-- CATEGORY 1: CARDIO (GPS TROOP WALK & STAMINA) -->
+      <div id="sec-strength-cardio">
+        <!-- COC Walk Card -->
+        <div class="card" style="background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(15, 23, 42, 0.95)); border: 2px solid rgba(239, 68, 68, 0.4);">
+          <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 10px;">
+            <div style="width: 50px; height: 50px; border-radius: 14px; background: linear-gradient(135deg, #ef4444, #991b1b); display: flex; align-items: center; justify-content: center; font-size: 26px;">
+              🚶‍♂️
+            </div>
+            <div style="flex: 1;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="font-size: 15px; font-weight: 800; color: #fff;">WALK (TROOP MARCH)</h3>
+                <span style="font-size: 10px; background: rgba(239, 68, 68, 0.3); color: #fca5a5; padding: 2px 8px; border-radius: 999px; font-weight: 800;">LVL 1</span>
+              </div>
+              <p style="font-size: 11px; color: var(--text-muted);">Live GPS distance & speed tracking</p>
+            </div>
           </div>
-          <button onclick="startTummyTimer()" id="btn-vacuum" style="background: var(--strength); border: none; color: #fff; font-weight: 800; font-size: 11px; padding: 6px 12px; border-radius: 8px; cursor: pointer;">
-            Start 30s
-          </button>
+
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; background: rgba(0, 0, 0, 0.35); padding: 10px; border-radius: 12px; margin-bottom: 12px; text-align: center;">
+            <div>
+              <span style="font-size: 9px; color: var(--text-muted); display: block; font-weight: 700;">DISTANCE</span>
+              <strong style="font-size: 17px; color: #38bdf8;" id="gps-dist">0.00</strong> <small style="font-size: 9px; color: #38bdf8;">km</small>
+            </div>
+            <div>
+              <span style="font-size: 9px; color: var(--text-muted); display: block; font-weight: 700;">SPEED</span>
+              <strong style="font-size: 17px; color: #f59e0b;" id="gps-speed">0.0</strong> <small style="font-size: 9px; color: #f59e0b;">km/h</small>
+            </div>
+            <div>
+              <span style="font-size: 9px; color: var(--text-muted); display: block; font-weight: 700;">ELIXIR</span>
+              <strong style="font-size: 17px; color: #10b981;" id="gps-kcal">0</strong> <small style="font-size: 9px; color: #10b981;">cal</small>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 8px;">
+            <button id="btn-gps-toggle" onclick="toggleGpsWalk()" style="flex: 1; background: linear-gradient(135deg, #ef4444, #dc2626); color: #fff; border: none; padding: 12px; border-radius: 12px; font-weight: 800; font-size: 12px; cursor: pointer;">
+              <span id="txt-gps-btn">DEPLOY TROOP (START WALK)</span>
+            </button>
+            <button onclick="resetGpsWalk()" style="background: rgba(255, 255, 255, 0.08); border: 1px solid var(--card-border); color: var(--text); padding: 0 14px; border-radius: 12px; font-weight: 700; font-size: 12px; cursor: pointer;">
+              Reset
+            </button>
+          </div>
+          <div id="gps-status" style="font-size: 10px; color: var(--text-muted); text-align: center; margin-top: 6px;">
+            GPS Ready • Tap Deploy outside
+          </div>
         </div>
 
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: rgba(255, 255, 255, 0.03); border-radius: 12px; margin-bottom: 8px;">
-          <div>
-            <h4 style="font-size: 13px; font-weight: 700;">Wall / Incline Pushups</h4>
-            <p style="font-size: 10px; color: var(--text-muted);">3 sets x 10 reps</p>
+        <!-- 8,000 Steps Quick Counter -->
+        <div class="card" style="border-color: rgba(239, 68, 68, 0.25);">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <h4 style="font-size: 13px; font-weight: 800;">Daily Step Goal: 8,000</h4>
+              <p style="font-size: 11px; color: var(--text-muted);">Low intensity continuous fat burn</p>
+            </div>
+            <button onclick="addSteps(1000)" style="background: rgba(239, 68, 68, 0.2); border: 1px solid var(--strength); color: #fff; font-weight: 800; font-size: 11px; padding: 6px 12px; border-radius: 8px; cursor: pointer;">
+              +1,000 Steps
+            </button>
           </div>
-          <button onclick="logPushup(10)" style="background: rgba(239,68,68,0.15); border: 1px solid var(--strength); color: var(--strength); padding: 5px 12px; border-radius: 8px; font-weight: 800; font-size: 11px; cursor: pointer;">+10 Reps</button>
         </div>
+      </div>
 
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: rgba(255, 255, 255, 0.03); border-radius: 12px;">
-          <div>
-            <h4 style="font-size: 13px; font-weight: 700;">Knee Pushups</h4>
-            <p style="font-size: 10px; color: var(--text-muted);">3 sets x 6 reps</p>
+      <!-- CATEGORY 2: WEIGHTS & MUSCLE (PUSHUPS, CORE, GYM) -->
+      <div id="sec-strength-weights" style="display: none;">
+        <div class="card" style="border-color: rgba(245, 158, 11, 0.35);">
+          <h4 style="font-size: 14px; font-weight: 800; color: #fcd34d; margin-bottom: 8px;">🏋️ Upper Body & Core Strength</h4>
+          <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 12px;">Builds resting metabolic rate & tightens saggy skin.</p>
+
+          <!-- Tummy Vacuum -->
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 12px; margin-bottom: 8px;">
+            <div>
+              <h4 style="font-size: 13px; font-weight: 800; color: #f87171;">🔥 Hanging Belly Vacuum</h4>
+              <p style="font-size: 10px; color: var(--text-muted);">Suck belly to spine. Tightens saggy tummy.</p>
+            </div>
+            <button onclick="startTummyTimer()" id="btn-vacuum" style="background: var(--strength); border: none; color: #fff; font-weight: 800; font-size: 11px; padding: 6px 12px; border-radius: 8px; cursor: pointer;">
+              Start 30s
+            </button>
           </div>
-          <button onclick="logPushup(6)" style="background: rgba(239,68,68,0.15); border: 1px solid var(--strength); color: var(--strength); padding: 5px 12px; border-radius: 8px; font-weight: 800; font-size: 11px; cursor: pointer;">+6 Reps</button>
-        </div>
 
-        <div style="margin-top: 10px; font-size: 12px; font-weight: 700; color: var(--strength);">
-          Today's Pushups: <span id="txt-pushups-val">0</span> reps
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: rgba(255, 255, 255, 0.03); border-radius: 12px; margin-bottom: 8px;">
+            <div>
+              <h4 style="font-size: 13px; font-weight: 700;">Wall / Incline Pushups</h4>
+              <p style="font-size: 10px; color: var(--text-muted);">3 sets x 10 reps</p>
+            </div>
+            <button onclick="logPushup(10)" style="background: rgba(239,68,68,0.15); border: 1px solid var(--strength); color: var(--strength); padding: 5px 12px; border-radius: 8px; font-weight: 800; font-size: 11px; cursor: pointer;">+10 Reps</button>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: rgba(255, 255, 255, 0.03); border-radius: 12px; margin-bottom: 8px;">
+            <div>
+              <h4 style="font-size: 13px; font-weight: 700;">Knee Pushups</h4>
+              <p style="font-size: 10px; color: var(--text-muted);">3 sets x 6 reps</p>
+            </div>
+            <button onclick="logPushup(6)" style="background: rgba(239,68,68,0.15); border: 1px solid var(--strength); color: var(--strength); padding: 5px 12px; border-radius: 8px; font-weight: 800; font-size: 11px; cursor: pointer;">+6 Reps</button>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: rgba(255, 255, 255, 0.03); border-radius: 12px;">
+            <div>
+              <h4 style="font-size: 13px; font-weight: 700;">Dead Hang (Pullup Step 1)</h4>
+              <p style="font-size: 10px; color: var(--text-muted);">Hold bar 20 secs</p>
+            </div>
+            <button onclick="alert('Dead hang logged!')" style="background: rgba(255,255,255,0.08); border: 1px solid var(--card-border); color: #fff; padding: 5px 12px; border-radius: 8px; font-weight: 800; font-size: 11px; cursor: pointer;">Logged</button>
+          </div>
+
+          <div style="margin-top: 10px; font-size: 12px; font-weight: 700; color: var(--strength);">
+            Today's Pushups: <span id="txt-pushups-val">0</span> reps
+          </div>
         </div>
       </div>
     </div>
@@ -1293,6 +1339,37 @@
         alert(data.analysis);
       } catch (e) {
         alert("Server audit loading failed. Check connection.");
+      }
+    }
+
+    function switchStrengthCategory(cat) {
+      const btnCardio = document.getElementById('btn-sub-cardio');
+      const btnWeights = document.getElementById('btn-sub-weights');
+      const secCardio = document.getElementById('sec-strength-cardio');
+      const secWeights = document.getElementById('sec-strength-weights');
+
+      if (cat === 'cardio') {
+        btnCardio.style.background = 'linear-gradient(135deg, rgba(239, 68, 68, 0.25), rgba(220, 38, 38, 0.4))';
+        btnCardio.style.border = '2px solid var(--strength)';
+        btnCardio.style.color = '#fff';
+
+        btnWeights.style.background = 'rgba(255, 255, 255, 0.04)';
+        btnWeights.style.border = '1px solid var(--card-border)';
+        btnWeights.style.color = 'var(--text-muted)';
+
+        secCardio.style.display = 'block';
+        secWeights.style.display = 'none';
+      } else {
+        btnWeights.style.background = 'linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(217, 119, 6, 0.4))';
+        btnWeights.style.border = '2px solid var(--wealth)';
+        btnWeights.style.color = '#fff';
+
+        btnCardio.style.background = 'rgba(255, 255, 255, 0.04)';
+        btnCardio.style.border = '1px solid var(--card-border)';
+        btnCardio.style.color = 'var(--text-muted)';
+
+        secCardio.style.display = 'none';
+        secWeights.style.display = 'block';
       }
     }
 
