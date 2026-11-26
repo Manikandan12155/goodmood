@@ -175,6 +175,11 @@ Supported actions:
       content: m.text
     }));
 
+    if (!groqKey) {
+      await sendTelegram(botToken, chatId, 'Groq API key missing in Vercel Env Vars bro! Add GROQ_API_KEY in Vercel Settings -> Redeploy.');
+      return res.status(200).json({ ok: true });
+    }
+
     const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${groqKey}` },
@@ -191,14 +196,23 @@ Supported actions:
     });
 
     const groqData = await groqRes.json();
+    if (groqData?.error) {
+      await sendTelegram(botToken, chatId, `Groq Error bro: ${groqData.error.message}`);
+      return res.status(200).json({ ok: true });
+    }
+
     const rawContent = groqData?.choices?.[0]?.message?.content;
-    let reply = 'Seri bro, note panniten.';
+    let reply = 'Sollu bro, naan kekkuren. Enna help venum?';
     let actions = [];
 
     if (rawContent) {
-      const parsed = JSON.parse(rawContent);
-      reply = parsed.reply || reply;
-      actions = Array.isArray(parsed.actions) ? parsed.actions : [];
+      try {
+        const parsed = JSON.parse(rawContent);
+        reply = parsed.reply || reply;
+        actions = Array.isArray(parsed.actions) ? parsed.actions : [];
+      } catch {
+        reply = rawContent;
+      }
     }
 
     if (actions.length > 0) {
