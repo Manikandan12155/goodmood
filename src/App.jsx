@@ -196,7 +196,7 @@ export default function App() {
             {state.today} • {master.currentTimeLabel} • <span style={{ color: '#34c759' }}>{master.phaseTitle}</span>
           </div>
           <h1 className="header-title">
-            {showSettings ? 'Settings & Cloud' : 'GoodMood PA'}
+            {showSettings ? 'Settings & Cloud' : 'Arunika'}
           </h1>
         </div>
         <div className="row" style={{ gap: 6 }}>

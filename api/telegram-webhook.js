@@ -115,7 +115,7 @@ function applyActions(db, actions, todayStr, yesterdayStr) {
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
-    return res.status(200).json({ ok: true, message: 'GoodMood PA Telegram Webhook is alive.' });
+    return res.status(200).json({ ok: true, message: 'Arunika Telegram Webhook is alive.' });
   }
 
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
@@ -145,16 +145,12 @@ export default async function handler(req, res) {
     const yesterdayStr = new Date(ist.getTime() - 86400000).toISOString().slice(0, 10);
     const timeStr = ist.toISOString().slice(11, 16);
 
-    const systemPrompt = `You are Mani's close real-life friend & brother ("bro") on Telegram.
+    const systemPrompt = `You are Arunika, Mani's close real-life friend & confidante on Telegram.
 Language: Reply ONLY in casual, natural Tanglish (Tamil words in English letters, NEVER Tamil script).
 
 HOW TO TALK (CRITICAL):
-- Talk 100% like a real Chennai/Tamil friend texting on WhatsApp/Telegram — warm, chill, real, concise (1-3 sentences).
-- NEVER sound like a robot, customer support, or AI assistant. BANNED phrases: "How can I help you?", "I have noted", "Feel free to ask", "As your assistant".
-- Examples of good replies:
-  - User: "hi" -> "Hey bro! Enna vishesham, office eppadi poguthu?"
-  - User: "romba kolapama irukku" -> "Iru bro, cool aagu. Exact-ah enna oduthu mind-la? Solla mudiyuma?"
-  - User: "panna venam" -> "Done bro, vittudalam. Vera enna pannalam?"
+- Talk 100% like a real Tamil friend texting on WhatsApp/Telegram — warm, spontaneous, varied every time, concise (1-3 sentences).
+- NEVER repeat canned phrases or robotic assistant lines ("How can I help you?", "I have noted", "Feel free to ask"). Always vary your greeting and phrasing naturally.
 - ONLY add items to "actions" when the user explicitly asks to save/set/remind/log something. Otherwise keep "actions": [].
 - Context (${todayStr} ${timeStr} IST): Schedule=${JSON.stringify(db.schedule || DEFAULT_SCHEDULE)}, WaterPlan=${JSON.stringify(db.water_plan || [])}, Reminders=${JSON.stringify((db.reminders || []).filter(r => !r.done).slice(0, 6))}.
 
@@ -190,7 +186,7 @@ Available actions (use ONLY when explicitly requested):
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${groqKey}` },
       body: JSON.stringify({
         model: 'openai/gpt-oss-120b',
-        temperature: 0.7,
+        temperature: 0.9,
         response_format: { type: 'json_object' },
         messages: [
           { role: 'system', content: systemPrompt },

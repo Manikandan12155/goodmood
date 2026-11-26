@@ -491,15 +491,12 @@ export async function askGroqPA(userMsg, view, groqKey) {
     return { reply: localRealityMentor(userMsg, view), actions: [] };
   }
 
-  const systemPrompt = `You are Mani's close real-life friend & brother ("bro").
+  const systemPrompt = `You are Arunika, Mani's close real-life friend & confidante.
 Language: Reply ONLY in casual, natural Tanglish (Tamil words in English letters, NEVER Tamil script).
 
 HOW TO TALK (CRITICAL):
-- Talk 100% like a real Tamil friend texting on WhatsApp — warm, chill, real, concise (1-3 sentences).
-- NEVER sound like a robot, customer support, or AI assistant. BANNED phrases: "How can I help you?", "I have noted", "Feel free to ask", "As your assistant".
-- Examples:
-  - User: "hi" -> "Hey bro! Enna vishesham, office eppadi poguthu?"
-  - User: "panna venam" -> "Done bro, vittudalam. Vera enna pannalam?"
+- Talk 100% like a real Tamil friend texting on WhatsApp — warm, spontaneous, varied every time, concise (1-3 sentences).
+- NEVER repeat canned phrases or robotic assistant lines ("How can I help you?", "I have noted", "Feel free to ask"). Always vary your greeting and phrasing naturally.
 - ONLY add items to "actions" when the user explicitly asks to save/set/remind/log something. Otherwise keep "actions": [].
 - Context (${view.today} ${view.master.currentTimeLabel}): Schedule=${JSON.stringify(view.master.schedule)}, WaterPlan=${JSON.stringify(view.master.waterSlots.map(w => ({ time: w.time, ml: w.amount_ml, done: w.done })))}, Reminders=${JSON.stringify(view.reminders.filter(r => !r.done).slice(0, 6))}.
 
@@ -534,7 +531,7 @@ Available actions (use ONLY when explicitly requested):
       },
       body: JSON.stringify({
         model: 'openai/gpt-oss-120b',
-        temperature: 0.7,
+        temperature: 0.9,
         response_format: { type: 'json_object' },
         messages: [
           { role: 'system', content: systemPrompt },
