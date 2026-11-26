@@ -529,7 +529,7 @@ Supported actions you can include in "actions" array when the user asks to save/
         Authorization: `Bearer ${groqKey}`
       },
       body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
+        model: 'openai/gpt-oss-120b',
         temperature: 0.4,
         response_format: { type: 'json_object' },
         messages: [
