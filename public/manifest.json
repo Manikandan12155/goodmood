@@ -1,0 +1,10 @@
+{
+  "name": "GoodMood PA",
+  "short_name": "GoodMood",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0b0f17",
+  "theme_color": "#0b0f17",
+  "description": "Personal Reality, Gym, Office & Reminder Assistant"
+}
+
