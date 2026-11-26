@@ -180,7 +180,7 @@ Context (${todayStr} ${timeStr} IST): Schedule=${JSON.stringify(db.schedule || D
 
     if (geminiKey) {
       try {
-        const gemUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent';
+        const gemUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent';
         const gemHistory = recent.map(m => ({
           role: m.role === 'user' ? 'user' : 'model',
           parts: [{ text: m.content }]
