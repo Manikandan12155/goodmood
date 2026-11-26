@@ -11,6 +11,10 @@ alter table public.pa_state enable row level security;
 create policy "Allow all access to pa_state"
   on public.pa_state
   for all
+  to anon, authenticated
   using (true)
   with check (true);
+
+grant usage on schema public to anon, authenticated;
+grant all on table public.pa_state to anon, authenticated;
 

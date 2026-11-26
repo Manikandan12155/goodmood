@@ -63,7 +63,7 @@ async function saveState(supabaseUrl, supabaseKey, db) {
 
 function extractTimeHHMM(text) {
   const low = text.toLowerCase();
-  const m12 = low.match(/\b(\d{1,2})(?::(\d{2}))?\s*(am|pm|o'?clock|maniku|mani)\b/);
+  const m12 = low.match(/\b(\d{1,2})(?::(\d{1,2}))?\s*(am|pm|o'?clock|maniku|mani)\b/);
   if (m12) {
     let h = parseInt(m12[1], 10);
     const mins = parseInt(m12[2] || '0', 10);
@@ -76,8 +76,14 @@ function extractTimeHHMM(text) {
     }
     return `${String(h).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
   }
-  const m24 = low.match(/\b([01]?\d|2[0-3]):([0-5]\d)\b/);
-  if (m24) return `${String(m24[1]).padStart(2, '0')}:${m24[2]}`;
+  const m24 = low.match(/\b([01]?\d|2[0-3]):(\d{1,2})\b/);
+  if (m24) {
+    let h = parseInt(m24[1], 10);
+    const mins = parseInt(m24[2], 10);
+    const istHour = getISTNow().getUTCHours();
+    if (h < 12 && (h + 12) >= istHour) h += 12;
+    return `${String(h).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+  }
   return null;
 }
 
@@ -291,17 +297,17 @@ Context (${todayStr} ${timeStr} IST): Schedule=${JSON.stringify(db.schedule || D
 
     let reply = rawContent || 'Enna Mani, sollunga — naan inga thaan irukken.';
     const actions = [...preActions];
-    for (const m of reply.matchAll(/\[ACTION:(\{.*?\})\]/g)) {
-      try {
-        const parsedAct = JSON.parse(m[1]);
-        if (!actions.some(a => a.type === parsedAct.type)) actions.push(parsedAct);
-      } catch {}
+    if (actions.length === 0) {
+      for (const m of reply.matchAll(/\[ACTION:(\{.*?\})\]/g)) {
+        try {
+          actions.push(JSON.parse(m[1]));
+        } catch {}
+      }
     }
     reply = reply.replace(/\[ACTION:\{.*?\}\]/g, '').trim();
 
     if (actions.length > 0) {
       applyActions(db, actions, todayStr, yesterdayStr);
-      reply += `\n\n✓ Saved (${actions.map(a => a.type).join(', ')})`;
     }
 
     db.mentor_history = [...(db.mentor_history || []), { role: 'user', text: userText }, { role: 'assistant', text: reply }].slice(-40);
