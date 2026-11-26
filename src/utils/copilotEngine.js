@@ -290,12 +290,18 @@ export function saveDB(db) {
   return db;
 }
 
+function sbHeaders(key, extra = {}) {
+  const h = { apikey: key, ...extra };
+  if (key && key.startsWith('eyJ')) h.Authorization = `Bearer ${key}`;
+  return h;
+}
+
 export async function loadFromSupabase(url, anonKey) {
   if (!url || !anonKey) return null;
   try {
     const cleanUrl = url.replace(/\/$/, '');
     const res = await fetch(`${cleanUrl}/rest/v1/pa_state?id=eq.main&select=data`, {
-      headers: { apikey: anonKey, Authorization: `Bearer ${anonKey}` }
+      headers: sbHeaders(anonKey)
     });
     const rows = await res.json();
     if (Array.isArray(rows) && rows.length > 0 && rows[0].data) {
@@ -315,12 +321,10 @@ export async function syncToSupabase(db) {
     const cleanUrl = url.replace(/\/$/, '');
     await fetch(`${cleanUrl}/rest/v1/pa_state`, {
       method: 'POST',
-      headers: {
-        apikey: anonKey,
-        Authorization: `Bearer ${anonKey}`,
+      headers: sbHeaders(anonKey, {
         'Content-Type': 'application/json',
         Prefer: 'resolution=merge-duplicates'
-      },
+      }),
       body: JSON.stringify({ id: 'main', data: db, updated_at: new Date().toISOString() })
     });
   } catch (e) {

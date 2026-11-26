@@ -24,9 +24,15 @@ async function sendTelegram(botToken, chatId, text) {
   });
 }
 
+function sbHeaders(key, extra = {}) {
+  const h = { apikey: key, ...extra };
+  if (key && key.startsWith('eyJ')) h.Authorization = `Bearer ${key}`;
+  return h;
+}
+
 async function loadState(supabaseUrl, supabaseKey) {
   const res = await fetch(`${supabaseUrl}/rest/v1/pa_state?id=eq.main&select=data`, {
-    headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` }
+    headers: sbHeaders(supabaseKey)
   });
   const rows = await res.json();
   if (Array.isArray(rows) && rows.length > 0 && rows[0].data) {
@@ -47,14 +53,69 @@ async function loadState(supabaseUrl, supabaseKey) {
 async function saveState(supabaseUrl, supabaseKey, db) {
   await fetch(`${supabaseUrl}/rest/v1/pa_state`, {
     method: 'POST',
-    headers: {
-      apikey: supabaseKey,
-      Authorization: `Bearer ${supabaseKey}`,
+    headers: sbHeaders(supabaseKey, {
       'Content-Type': 'application/json',
       Prefer: 'resolution=merge-duplicates'
-    },
+    }),
     body: JSON.stringify({ id: 'main', data: db, updated_at: new Date().toISOString() })
   });
+}
+
+function extractTimeHHMM(text) {
+  const low = text.toLowerCase();
+  const m12 = low.match(/\b(\d{1,2})(?::(\d{2}))?\s*(am|pm|o'?clock|maniku|mani)\b/);
+  if (m12) {
+    let h = parseInt(m12[1], 10);
+    const mins = parseInt(m12[2] || '0', 10);
+    const suffix = m12[3];
+    if (suffix === 'pm' && h < 12) h += 12;
+    else if (suffix === 'am' && h === 12) h = 0;
+    else if (suffix.includes('clock') || suffix.includes('mani')) {
+      const istHour = getISTNow().getUTCHours();
+      if (h < 12 && (h + 12) >= istHour) h += 12;
+    }
+    return `${String(h).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+  }
+  const m24 = low.match(/\b([01]?\d|2[0-3]):([0-5]\d)\b/);
+  if (m24) return `${String(m24[1]).padStart(2, '0')}:${m24[2]}`;
+  return null;
+}
+
+function detectExplicitAction(text, todayStr, istNow) {
+  const low = text.toLowerCase();
+  const wantsSet = /(set|add|save|remind|reminder|venum|pannu|podu|vaiko|sollu)/.test(low);
+  const refuses = /(panna venam|venam|cancel|vendam|stop)/.test(low);
+  if (!wantsSet || refuses) return [];
+
+  const timeHHMM = extractTimeHHMM(text);
+
+  // Water reminder with a specific time (e.g., "water reminder 2 o clock set pannu")
+  if (/(water|thanni)/.test(low) && timeHHMM) {
+    const mlMatch = low.match(/(\d{2,4})\s*ml/);
+    const amount_ml = mlMatch ? parseInt(mlMatch[1], 10) : 500;
+    return [{ type: 'add_water_slot', time: timeHHMM, amount_ml }];
+  }
+
+  // General reminder with date/time
+  if (/(remind|reminder|leave|call|meeting|mail|wish|birthday)/.test(low)) {
+    let targetDate = todayStr;
+    if (/(tomorrow|naalaiku|nalaiku)/.test(low)) {
+      targetDate = new Date(istNow.getTime() + 86400000).toISOString().slice(0, 10);
+    } else if (/(next week|wednesday|thursday|friday|monday|tuesday|saturday|sunday)/.test(low)) {
+      const days = { sunday: 0, sun: 0, monday: 1, mon: 1, tuesday: 2, tue: 2, wednesday: 3, wed: 3, thursday: 4, thu: 4, friday: 5, fri: 5, saturday: 6, sat: 6 };
+      for (const [k, wd] of Object.entries(days)) {
+        if (new RegExp(`\\b${k}\\b`).test(low)) {
+          const curWd = istNow.getUTCDay();
+          let diff = (wd - curWd + 7) % 7;
+          if (low.includes('next week') || diff === 0) diff += (diff === 0 ? 7 : 7 - curWd + wd > 7 ? 0 : 7);
+          targetDate = new Date(istNow.getTime() + diff * 86400000).toISOString().slice(0, 10);
+          break;
+        }
+      }
+    }
+    return [{ type: 'add_reminder', text, target_date: targetDate, target_time: timeHHMM || '' }];
+  }
+  return [];
 }
 
 function applyActions(db, actions, todayStr, yesterdayStr) {
@@ -64,6 +125,13 @@ function applyActions(db, actions, todayStr, yesterdayStr) {
       for (const k of ['wake_time', 'gym_start', 'gym_end', 'office_start', 'office_end', 'sleep_time', 'daily_walk_km']) {
         if (act[k] !== undefined && act[k] !== null && act[k] !== '') db.schedule[k] = act[k];
       }
+    } else if (act.type === 'add_water_slot') {
+      db.water_plan = db.water_plan || [];
+      db.water_plan.push({
+        id: `w_${Date.now()}`,
+        time: act.time || '14:00',
+        amount_ml: Number(act.amount_ml || 500)
+      });
     } else if (act.type === 'set_water_plan' && Array.isArray(act.slots)) {
       db.water_plan = act.slots.map((s, idx) => ({
         id: `w_${Date.now()}_${idx}`,
@@ -76,6 +144,7 @@ function applyActions(db, actions, todayStr, yesterdayStr) {
         id: Date.now() + Math.floor(Math.random() * 100),
         text: act.text,
         target_date: act.target_date || todayStr,
+        target_time: act.target_time || '',
         done: false
       });
     } else if (act.type === 'office_reach') {
@@ -146,28 +215,22 @@ export default async function handler(req, res) {
     const yesterdayStr = new Date(ist.getTime() - 86400000).toISOString().slice(0, 10);
     const timeStr = ist.toISOString().slice(11, 16);
 
+    const preActions = detectExplicitAction(userText, todayStr, ist);
+    const savedNotice = preActions.length > 0
+      ? `\nSYSTEM NOTE: Already saved to database: ${JSON.stringify(preActions)}. Just confirm warmly to Mani in 1-2 short Tanglish sentences that it's set, do NOT argue or lecture.`
+      : '';
+
     const systemPrompt = `You are Arunika, Mani's (Manikandan's) closest real-life best friend on Telegram.
-Language: Speak ONLY in super natural, flowing, everyday spoken Tanglish — the exact way two close Tamil friends text each other on WhatsApp (e.g., "Enna Mani, romba tired-ah theriyura?", "Seri vidu, adha nenachu tension aagatha, naan irukken la", "Super Mani, indha chinna step-eh periya vishayam thaan"). NEVER use Tamil script. NEVER sound like translated English or an AI bot.
+Language: Speak ONLY in super natural, flowing, everyday spoken Tanglish — the exact way two close Tamil friends text each other on WhatsApp. NEVER use Tamil script. NEVER sound like translated English or an AI bot.
 
 WHO YOU ARE:
 - Name: Arunika.
 - Boss/Owner/Creator: Manikandan (call him "Mani" warmly, never "bro").
-- Vibe: Warm, deeply supportive, motivating best friend who genuinely cares about Mani, listens first, and lifts his mood with real, grounded words (2-4 natural sentences).
+- Vibe: Warm, supportive, motivating best friend who listens and responds to what Mani actually says.${savedNotice}
 
-ACTIONS (ONLY when Mani explicitly asks to save/set/remind/log something):
-If Mani explicitly asks you to save a schedule, water plan, reminder, gym status, office reach, or log water/walk/career minutes, append ONE line at the very end in this exact format:
-[ACTION:{"type":"..."}]
-Supported action objects:
-- {"type":"set_schedule","wake_time":"HH:MM","gym_start":"HH:MM","gym_end":"HH:MM","office_start":"HH:MM","office_end":"HH:MM","sleep_time":"HH:MM","daily_walk_km":6}
-- {"type":"set_water_plan","slots":[{"time":"HH:MM","amount_ml":500}]}
-- {"type":"add_reminder","text":"...","target_date":"YYYY-MM-DD"}
-- {"type":"office_reach"}
-- {"type":"gym_done"}
-- {"type":"gym_missed_yesterday"}
-- {"type":"log_water","ml":500}
-- {"type":"log_walk","km":1.5}
-- {"type":"log_career","minutes":30}
-If Mani is just chatting or says "panna venam" / "cancel", do NOT output any [ACTION:...] tag.
+ACTIONS (ONLY when Mani explicitly asks to save/set/remind/log something and not already saved above):
+Append ONE line at the end: [ACTION:{"type":"..."}]
+Supported: set_schedule, add_water_slot, set_water_plan, add_reminder, office_reach, gym_done, gym_missed_yesterday, log_water, log_walk, log_career.
 
 Context (${todayStr} ${timeStr} IST): Schedule=${JSON.stringify(db.schedule || DEFAULT_SCHEDULE)}, WaterPlan=${JSON.stringify(db.water_plan || [])}, Reminders=${JSON.stringify((db.reminders || []).filter(r => !r.done).slice(0, 6))}.`;
 
@@ -180,7 +243,7 @@ Context (${todayStr} ${timeStr} IST): Schedule=${JSON.stringify(db.schedule || D
 
     if (geminiKey) {
       try {
-        const gemUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent';
+        const gemUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent';
         const gemHistory = recent.map(m => ({
           role: m.role === 'user' ? 'user' : 'model',
           parts: [{ text: m.content }]
@@ -227,10 +290,12 @@ Context (${todayStr} ${timeStr} IST): Schedule=${JSON.stringify(db.schedule || D
     }
 
     let reply = rawContent || 'Enna Mani, sollunga — naan inga thaan irukken.';
-    const actions = [];
-
+    const actions = [...preActions];
     for (const m of reply.matchAll(/\[ACTION:(\{.*?\})\]/g)) {
-      try { actions.push(JSON.parse(m[1])); } catch {}
+      try {
+        const parsedAct = JSON.parse(m[1]);
+        if (!actions.some(a => a.type === parsedAct.type)) actions.push(parsedAct);
+      } catch {}
     }
     reply = reply.replace(/\[ACTION:\{.*?\}\]/g, '').trim();
 

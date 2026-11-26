@@ -21,6 +21,12 @@ function timeToMins(hhmm) {
   return (h || 0) * 60 + (m || 0);
 }
 
+function sbHeaders(key, extra = {}) {
+  const h = { apikey: key, ...extra };
+  if (key && key.startsWith('eyJ')) h.Authorization = `Bearer ${key}`;
+  return h;
+}
+
 export default async function handler(req, res) {
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_ANON_KEY;
@@ -35,13 +41,13 @@ export default async function handler(req, res) {
 
   try {
     const dbRes = await fetch(`${supabaseUrl}/rest/v1/pa_state?id=eq.main&select=data`, {
-      headers: {
-        apikey: supabaseKey,
-        Authorization: `Bearer ${supabaseKey}`
-      }
+      headers: sbHeaders(supabaseKey)
     });
     const rows = await dbRes.json();
-    if (!rows || rows.length === 0) {
+    if (!Array.isArray(rows)) {
+      return res.status(500).json({ error: 'Supabase error', details: rows });
+    }
+    if (rows.length === 0) {
       return res.status(200).json({ ok: true, message: 'No state yet' });
     }
 
@@ -86,18 +92,26 @@ export default async function handler(req, res) {
       }
     }
 
-    // 3. Check Reminders (Today & Tomorrow Morning 9 AM)
-    if (curMins >= 9 * 60 && curMins <= 9 * 60 + 20) {
-      for (const r of db.reminders || []) {
-        if (r.done) continue;
-        const rKey = `rem_${r.id}_${todayStr}`;
-        if (notified.includes(rKey)) continue;
+    // 3. Check Reminders (Exact target_time OR 9 AM for date-only reminders)
+    for (const r of db.reminders || []) {
+      if (r.done) continue;
+      const rKey = `rem_${r.id}_${todayStr}`;
+      if (notified.includes(rKey)) continue;
+
+      if (r.target_date === todayStr && r.target_time) {
+        const rMins = timeToMins(r.target_time);
+        if (curMins >= rMins && curMins <= rMins + 20) {
+          await sendTelegram(botToken, chatId, `🔔 Reminder (${r.target_time}): ${r.text}`);
+          notified.push(rKey);
+          sent.push(rKey);
+        }
+      } else if (curMins >= 9 * 60 && curMins <= 9 * 60 + 20) {
         if (r.target_date === todayStr) {
           await sendTelegram(botToken, chatId, `🔔 TODAY Reminder: ${r.text}`);
           notified.push(rKey);
           sent.push(rKey);
         } else if (r.target_date === tomorrowStr) {
-          await sendTelegram(botToken, chatId, `📅 Tomorrow Alert: ${r.text} — innaike ready aagiko bro!`);
+          await sendTelegram(botToken, chatId, `📅 Tomorrow Alert: ${r.text} — innaike ready aagiko Mani!`);
           notified.push(rKey);
           sent.push(rKey);
         }
@@ -108,11 +122,7 @@ export default async function handler(req, res) {
       db.notified_today = { [todayStr]: notified };
       await fetch(`${supabaseUrl}/rest/v1/pa_state?id=eq.main`, {
         method: 'PATCH',
-        headers: {
-          apikey: supabaseKey,
-          Authorization: `Bearer ${supabaseKey}`,
-          'Content-Type': 'application/json'
-        },
+        headers: sbHeaders(supabaseKey, { 'Content-Type': 'application/json' }),
         body: JSON.stringify({ data: db, updated_at: new Date().toISOString() })
       });
     }
