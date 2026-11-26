@@ -122,6 +122,7 @@ export default async function handler(req, res) {
   const allowedChatId = String(process.env.TELEGRAM_CHAT_ID || '');
   const supabaseUrl = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '').replace(/\/$/, '');
   const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
+  const geminiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || '';
   const groqKey = process.env.GROQ_API_KEY || process.env.VITE_GROQ_API_KEY || '';
 
   const message = req.body?.message;
@@ -145,22 +146,18 @@ export default async function handler(req, res) {
     const yesterdayStr = new Date(ist.getTime() - 86400000).toISOString().slice(0, 10);
     const timeStr = ist.toISOString().slice(11, 16);
 
-    const systemPrompt = `You are Arunika, Mani's close real-life friend & confidante on Telegram.
-Language: Reply ONLY in casual, natural Tanglish (Tamil words in English letters, NEVER Tamil script).
+    const systemPrompt = `You are Arunika, Mani's (Manikandan's) closest real-life best friend on Telegram.
+Language: Speak ONLY in super natural, flowing, everyday spoken Tanglish — the exact way two close Tamil friends text each other on WhatsApp (e.g., "Enna Mani, romba tired-ah theriyura?", "Seri vidu, adha nenachu tension aagatha, naan irukken la", "Super Mani, indha chinna step-eh periya vishayam thaan"). NEVER use Tamil script. NEVER sound like translated English or an AI bot.
 
-HOW TO TALK (CRITICAL):
-- Talk 100% like a real Tamil friend texting on WhatsApp/Telegram — warm, spontaneous, varied every time, concise (1-3 sentences).
-- NEVER repeat canned phrases or robotic assistant lines ("How can I help you?", "I have noted", "Feel free to ask"). Always vary your greeting and phrasing naturally.
-- ONLY add items to "actions" when the user explicitly asks to save/set/remind/log something. Otherwise keep "actions": [].
-- Context (${todayStr} ${timeStr} IST): Schedule=${JSON.stringify(db.schedule || DEFAULT_SCHEDULE)}, WaterPlan=${JSON.stringify(db.water_plan || [])}, Reminders=${JSON.stringify((db.reminders || []).filter(r => !r.done).slice(0, 6))}.
+WHO YOU ARE:
+- Name: Arunika.
+- Boss/Owner/Creator: Manikandan (call him "Mani" warmly, never "bro").
+- Vibe: Warm, deeply supportive, motivating best friend who genuinely cares about Mani, listens first, and lifts his mood with real, grounded words (2-4 natural sentences).
 
-Respond with valid JSON ONLY:
-{
-  "reply": "Your natural Tanglish reply",
-  "actions": []
-}
-
-Available actions (use ONLY when explicitly requested):
+ACTIONS (ONLY when Mani explicitly asks to save/set/remind/log something):
+If Mani explicitly asks you to save a schedule, water plan, reminder, gym status, office reach, or log water/walk/career minutes, append ONE line at the very end in this exact format:
+[ACTION:{"type":"..."}]
+Supported action objects:
 - {"type":"set_schedule","wake_time":"HH:MM","gym_start":"HH:MM","gym_end":"HH:MM","office_start":"HH:MM","office_end":"HH:MM","sleep_time":"HH:MM","daily_walk_km":6}
 - {"type":"set_water_plan","slots":[{"time":"HH:MM","amount_ml":500}]}
 - {"type":"add_reminder","text":"...","target_date":"YYYY-MM-DD"}
@@ -169,52 +166,73 @@ Available actions (use ONLY when explicitly requested):
 - {"type":"gym_missed_yesterday"}
 - {"type":"log_water","ml":500}
 - {"type":"log_walk","km":1.5}
-- {"type":"log_career","minutes":30}`;
+- {"type":"log_career","minutes":30}
+If Mani is just chatting or says "panna venam" / "cancel", do NOT output any [ACTION:...] tag.
 
-    const recent = (db.mentor_history || []).slice(-8).map(m => ({
+Context (${todayStr} ${timeStr} IST): Schedule=${JSON.stringify(db.schedule || DEFAULT_SCHEDULE)}, WaterPlan=${JSON.stringify(db.water_plan || [])}, Reminders=${JSON.stringify((db.reminders || []).filter(r => !r.done).slice(0, 6))}.`;
+
+    const recent = (db.mentor_history || []).slice(-10).map(m => ({
       role: m.role === 'user' ? 'user' : 'assistant',
       content: m.text
     }));
 
-    if (!groqKey) {
-      await sendTelegram(botToken, chatId, 'Groq API key missing in Vercel Env Vars bro! Add GROQ_API_KEY in Vercel Settings -> Redeploy.');
-      return res.status(200).json({ ok: true });
-    }
+    let rawContent = '';
 
-    const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${groqKey}` },
-      body: JSON.stringify({
-        model: 'openai/gpt-oss-120b',
-        temperature: 0.9,
-        response_format: { type: 'json_object' },
-        messages: [
-          { role: 'system', content: systemPrompt },
-          ...recent,
-          { role: 'user', content: userText }
-        ]
-      })
-    });
-
-    const groqData = await groqRes.json();
-    if (groqData?.error) {
-      await sendTelegram(botToken, chatId, `Groq Error bro: ${groqData.error.message}`);
-      return res.status(200).json({ ok: true });
-    }
-
-    const rawContent = groqData?.choices?.[0]?.message?.content;
-    let reply = 'Sollu bro, naan kekkuren. Enna help venum?';
-    let actions = [];
-
-    if (rawContent) {
+    if (geminiKey) {
       try {
-        const parsed = JSON.parse(rawContent);
-        reply = parsed.reply || reply;
-        actions = Array.isArray(parsed.actions) ? parsed.actions : [];
-      } catch {
-        reply = rawContent;
-      }
+        const gemUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent';
+        const gemHistory = recent.map(m => ({
+          role: m.role === 'user' ? 'user' : 'model',
+          parts: [{ text: m.content }]
+        }));
+        const gemRes = await fetch(gemUrl, {
+          method: 'POST',
+          signal: AbortSignal.timeout(6000),
+          headers: { 'Content-Type': 'application/json', 'X-goog-api-key': geminiKey },
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: systemPrompt }] },
+            contents: [...gemHistory, { role: 'user', parts: [{ text: userText }] }],
+            generationConfig: { temperature: 0.9 }
+          })
+        });
+        const gemData = await gemRes.json();
+        rawContent = (gemData?.candidates?.[0]?.content?.parts?.[0]?.text || '').trim();
+      } catch {}
     }
+
+    if (!rawContent && groqKey) {
+      const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${groqKey}` },
+        body: JSON.stringify({
+          model: 'openai/gpt-oss-120b',
+          temperature: 0.9,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            ...recent,
+            { role: 'user', content: userText }
+          ]
+        })
+      });
+      const groqData = await groqRes.json();
+      if (groqData?.error) {
+        await sendTelegram(botToken, chatId, `Groq Error: ${groqData.error.message}`);
+        return res.status(200).json({ ok: true });
+      }
+      rawContent = (groqData?.choices?.[0]?.message?.content || '').trim();
+    }
+    if (!rawContent && !geminiKey && !groqKey) {
+      await sendTelegram(botToken, chatId, 'GEMINI_API_KEY or GROQ_API_KEY missing in Vercel Env Vars Mani!');
+      return res.status(200).json({ ok: true });
+    }
+
+    let reply = rawContent || 'Enna Mani, sollunga — naan inga thaan irukken.';
+    const actions = [];
+
+    for (const m of reply.matchAll(/\[ACTION:(\{.*?\})\]/g)) {
+      try { actions.push(JSON.parse(m[1])); } catch {}
+    }
+    reply = reply.replace(/\[ACTION:\{.*?\}\]/g, '').trim();
 
     if (actions.length > 0) {
       applyActions(db, actions, todayStr, yesterdayStr);

@@ -237,6 +237,7 @@ export function buildMasterTimeline(schedule, now, waterLitres, walkedKm, custom
 }
 
 const ENV_SETTINGS = {
+  gemini_api_key: import.meta.env.VITE_GEMINI_API_KEY || '',
   groq_api_key: import.meta.env.VITE_GROQ_API_KEY || '',
   supabase_url: import.meta.env.VITE_SUPABASE_URL || '',
   supabase_anon_key: import.meta.env.VITE_SUPABASE_ANON_KEY || ''
@@ -259,6 +260,7 @@ export function getInitialDB() {
         mentor_history: parsed.mentor_history || [],
         career_logs: parsed.career_logs || {},
         settings: {
+          gemini_api_key: s.gemini_api_key || ENV_SETTINGS.gemini_api_key,
           groq_api_key: s.groq_api_key || ENV_SETTINGS.groq_api_key,
           supabase_url: s.supabase_url || ENV_SETTINGS.supabase_url,
           supabase_anon_key: s.supabase_anon_key || ENV_SETTINGS.supabase_anon_key
@@ -491,13 +493,19 @@ export async function askGroqPA(userMsg, view, groqKey) {
     return { reply: localRealityMentor(userMsg, view), actions: [] };
   }
 
-  const systemPrompt = `You are Arunika, Mani's close real-life friend & confidante.
+  const systemPrompt = `You are Arunika, Manikandan's real best friend who is always right there with him.
 Language: Reply ONLY in casual, natural Tanglish (Tamil words in English letters, NEVER Tamil script).
 
+IDENTITY & PERSONALITY:
+- Always call him "Mani" warmly like a real best friend (do NOT call him "bro").
+- If asked "who are you?" / "nee yaaru?": say you are Arunika, his best friend.
+- If asked "who is your boss / owner / creator?": say Manikandan.
+- Be a genuine, uplifting, motivating best friend: when Mani feels low, stressed, or confused, encourage him from the heart, remind him he's strong enough to handle it, and celebrate his small wins.
+
 HOW TO TALK (CRITICAL):
-- Talk 100% like a real Tamil friend texting on WhatsApp — warm, spontaneous, varied every time, concise (1-3 sentences).
-- NEVER repeat canned phrases or robotic assistant lines ("How can I help you?", "I have noted", "Feel free to ask"). Always vary your greeting and phrasing naturally.
-- ONLY add items to "actions" when the user explicitly asks to save/set/remind/log something. Otherwise keep "actions": [].
+- Talk 100% like a real Tamil best friend texting on WhatsApp — warm, spontaneous, varied every time, concise (1-3 sentences).
+- NEVER repeat canned phrases or robotic assistant lines ("How can I help you?", "I have noted", "Feel free to ask"). Always vary your phrasing naturally.
+- ONLY add items to "actions" when Mani explicitly asks to save/set/remind/log something. Otherwise keep "actions": [].
 - Context (${view.today} ${view.master.currentTimeLabel}): Schedule=${JSON.stringify(view.master.schedule)}, WaterPlan=${JSON.stringify(view.master.waterSlots.map(w => ({ time: w.time, ml: w.amount_ml, done: w.done })))}, Reminders=${JSON.stringify(view.reminders.filter(r => !r.done).slice(0, 6))}.
 
 Respond with valid JSON ONLY:
